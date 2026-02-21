@@ -101,10 +101,8 @@ def upload_file():
 
         if filename.endswith(".csv"):
             df = pd.read_csv(file)
-
             if "review" not in df.columns:
                 return jsonify({"error": "CSV must contain 'review' column"}), 400
-
             reviews = df["review"].astype(str).tolist()
 
         elif filename.endswith(".txt"):
@@ -113,23 +111,20 @@ def upload_file():
         else:
             return jsonify({"error": "Unsupported file type"}), 400
 
+        # Perform AI Prediction
         results = predict_sentiment(reviews)
 
-        # Convert to downloadable CSV
-        output = io.StringIO()
-        pd.DataFrame(results).to_csv(output, index=False)
-        output.seek(0)
+        # Create the summary count for the Android PieChart
+        summary = pd.DataFrame(results)["sentiment"].value_counts().to_dict()
 
-        return send_file(
-            io.BytesIO(output.getvalue().encode()),
-            mimetype="text/csv",
-            as_attachment=True,
-            download_name="sentiment_results.csv"
-        )
+        # IMPORTANT: Return JSON so the Android App can display the list and chart
+        return jsonify({
+            "results": results,
+            "summary": summary
+        })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 # -------------------------------
 # Run Locally
