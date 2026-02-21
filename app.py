@@ -106,18 +106,19 @@ def upload_file():
             reviews = df["review"].astype(str).tolist()
 
         elif filename.endswith(".txt"):
-            reviews = [line.decode("utf-8").strip() for line in file if line.strip()]
+            # Improved way to read .txt lines in Flask
+            content = file.read().decode("utf-8")
+            reviews = [line.strip() for line in content.splitlines() if line.strip()]
 
         else:
             return jsonify({"error": "Unsupported file type"}), 400
 
-        # Perform AI Prediction
-        results = predict_sentiment(reviews)
+        if not reviews:
+            return jsonify({"error": "File is empty"}), 400
 
-        # Create the summary count for the Android PieChart
+        results = predict_sentiment(reviews)
         summary = pd.DataFrame(results)["sentiment"].value_counts().to_dict()
 
-        # IMPORTANT: Return JSON so the Android App can display the list and chart
         return jsonify({
             "results": results,
             "summary": summary
